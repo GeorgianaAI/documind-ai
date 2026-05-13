@@ -1,8 +1,8 @@
-# DOCUMIND AI | Architecture & Governance
+# DocuMindAI | Architecture & Governance
 
 ## 1. Project Intent
 
-DocuMind AI is a RAG-native PDF intelligence platform. Users upload PDFs which are chunked, embedded, and stored in a session-scoped in-memory vector store. Grounded, streaming answers are returned by GPT-4o-mini using the top-3 semantically relevant chunks, with clickable source pills exposing the evidence behind every response.
+DocuMindAI is a RAG-native PDF intelligence platform. Users upload PDFs which are chunked, embedded, and stored in a session-scoped in-memory vector store. Grounded, streaming answers are returned by GPT-4o-mini using the top-3 semantically relevant chunks, with clickable source pills exposing the evidence behind every response.
 
 ## 2. Technical Stack
 
@@ -41,25 +41,29 @@ DocuMind AI is a RAG-native PDF intelligence platform. Users upload PDFs which a
   - If a component or file exceeds approximately 200 lines, extract logic into co-located flat files within the same directory (e.g., `constants.ts`, `types.ts`, `helpers.ts`).
   - Keep RAG/AI/PDF logic (Services) out of the UI (Components). Use API Route Handlers for pipeline execution and maintain clean, declarative JSX.
 
-## 4. Code Layout & Architecture
+## 4. Denied Permission to Secret File Access
+
+Hard rule: **never** read, search, open, cat, grep, ripgrep, summarize, or inspect real secret-bearing files **under any circumstance** unless the user explicitly overrides this rule for the current task. This includes `.env`, `.env.local`, `.env.development`, `.env.production`, `.env.test`, any other real secret `.env.*` variants, `*.pem`, `*.key`, and `~/.ssh/**`. If a task requires knowing which keys or variables exist, read `.env.example` only. If a task appears to require actual secret values from a real env file, stop and ask the user instead of accessing that file.
+
+## 5. Code Layout & Architecture
 
 Maintain thin entrypoints. Logic must be extracted once a file exceeds approx. 200 lines.
 
 ### Directory Mapping
 
-| Area | Purpose |
-| :--- | :--- |
-| `src/app/` | **Routing Only:** `page.tsx`, `layout.tsx`. Minimal logic. |
-| `src/app/workspace/` | **RAG Shell Route:** The live PDF-upload + chat workspace. |
-| `src/app/api/chat/route.ts` | **Chat Route:** LangChain retrieval pipeline + GPT-4o-mini streaming. |
-| `src/app/api/chat/sources/route.ts` | **Sources Route:** Returns top-3 relevant chunks for citation pills. |
-| `src/app/api/rag/ingest/route.ts` | **Ingestion Route:** PDF parsing, chunking, embedding, session-store upsert. |
-| `src/components/` | **Feature Components:** `chat-interface.tsx`, `pdf-uploader.tsx`. |
-| `src/components/ui/` | **Primitives:** Shadcn/UI base components (`button`, `card`, `input`, `scroll-area`, `use-toast`). |
-| `src/lib/ai/rag-engine.ts` | **RAG Engine:** PDF text extraction, chunking, embedding, cosine retrieval. |
-| `src/lib/utils.ts` | **Glue:** `cn()` and shared formatting utilities. |
-| `src/hooks/use-session-id.ts` | **State:** Session UUID hook — single source of truth for in-memory store scoping. |
-| `src/test/setup.ts` | **Test bootstrap:** Vitest + Testing Library DOM setup. |
+| Area                                | Purpose                                                                                            |
+| :---------------------------------- | :------------------------------------------------------------------------------------------------- |
+| `src/app/`                          | **Routing Only:** `page.tsx`, `layout.tsx`. Minimal logic.                                         |
+| `src/app/workspace/`                | **RAG Shell Route:** The live PDF-upload + chat workspace.                                         |
+| `src/app/api/chat/route.ts`         | **Chat Route:** LangChain retrieval pipeline + GPT-4o-mini streaming.                              |
+| `src/app/api/chat/sources/route.ts` | **Sources Route:** Returns top-3 relevant chunks for citation pills.                               |
+| `src/app/api/rag/ingest/route.ts`   | **Ingestion Route:** PDF parsing, chunking, embedding, session-store upsert.                       |
+| `src/components/`                   | **Feature Components:** `chat-interface.tsx`, `pdf-uploader.tsx`.                                  |
+| `src/components/ui/`                | **Primitives:** Shadcn/UI base components (`button`, `card`, `input`, `scroll-area`, `use-toast`). |
+| `src/lib/ai/rag-engine.ts`          | **RAG Engine:** PDF text extraction, chunking, embedding, cosine retrieval.                        |
+| `src/lib/utils.ts`                  | **Glue:** `cn()` and shared formatting utilities.                                                  |
+| `src/hooks/use-session-id.ts`       | **State:** Session UUID hook — single source of truth for in-memory store scoping.                 |
+| `src/test/setup.ts`                 | **Test bootstrap:** Vitest + Testing Library DOM setup.                                            |
 
 ### Naming Conventions
 
@@ -83,7 +87,7 @@ Maintain thin entrypoints. Logic must be extracted once a file exceeds approx. 2
 - **Validation at Boundaries Only:** Zod schemas enforce contracts at API routes. Do not re-validate data already inside the trusted pipeline.
 - **Chunking is authoritative:** The 1,000-character / 200-character overlap chunking in `rag-engine.ts` is the retrieval contract. Do not change these values without updating the corresponding tests.
 
-## 4.1 UI Consistency & Radix Nova Theme
+## 5.1 UI Consistency & Radix Nova Theme
 
 Strict adherence to the Shadcn/UI Radix Nova aesthetic is mandatory.
 
@@ -96,7 +100,7 @@ Strict adherence to the Shadcn/UI Radix Nova aesthetic is mandatory.
   - **Amber/Yellow:** Warnings, loading states, processing indicators.
   - **Slate neutrals:** Backgrounds, cards, borders, muted text.
 
-## 5. Testing Invariants
+## 6. Testing Invariants
 
 These invariants must not be weakened by any change:
 
@@ -105,7 +109,7 @@ These invariants must not be weakened by any change:
 3. **Version Parity:** `vitest` and `@vitest/coverage-v8` must always share the same major version in `package.json`.
 4. **Session Guard:** The `sessionId` guard at the top of each API handler is the first line of defence against cross-session contamination. Never remove it.
 
-## 6. Operational Commands
+## 7. Operational Commands
 
 ```bash
 # Development
