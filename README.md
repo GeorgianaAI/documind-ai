@@ -1,10 +1,16 @@
-# 🧠 DocuMind AI: Evidence-First RAG for Document Intelligence
+# 🧠 DocuMindAI: Evidence-First RAG for Document Intelligence
 
 **[🚀 View Live Demo](https://documind-ai-three.vercel.app)** | **[📂 View Codebase](https://github.com/GeorgiDS9/documind-ai)**
 
 **Modern AI Orchestration | Next.js 16 | Verifiable Citations**
 
-**DocuMind AI** is a professional **Retrieval-Augmented Generation (RAG)** platform designed to transform static PDFs into interactive, grounded intelligence. Built in **March 2026**, this project focuses on **AI reliability** and **source transparency**, ensuring every response is backed by specific evidence from the uploaded documentation.
+**DocuMindAI** is a professional **Retrieval-Augmented Generation (RAG)** platform designed to transform static PDFs into interactive, grounded intelligence. Built in **March 2026**, this project focuses on **AI reliability** and **source transparency**, ensuring every response is backed by specific evidence from the uploaded documentation.
+
+---
+
+### 🧭 **Engineering Philosophy**
+
+As an engineer with nearly 5 years of experience in security environments (Trend Micro), I believe AI should be a "glass box," not a "black box." DocuMindAI demonstrates my ability to build **verifiable**, **cost-efficient**, and **secure** AI systems.
 
 ---
 
@@ -19,11 +25,11 @@
 
 ## 🖼️ Product Snapshot
 
-**DocuMind AI Landing Page**
+**DocuMindAI Landing Page**
 ![Sentinel Landing Page](./docs/assets/documind-landing-page.png)
 
-**DocuMind AI Workspace**
-![DocuMind AI Landing Page](./docs/assets/documind-workspace.png)
+**DocuMindAI Workspace**
+![DocuMindAI Landing Page](./docs/assets/documind-workspace.png)
 
 ---
 
@@ -67,13 +73,13 @@
 ## ⚠️ Infrastructure Limitation
 
 > [!WARNING]
-> DocuMind AI utilizes an **Ephemeral In-Memory Store** (`MemoryVectorStore`) for its RAG engine.
+> DocuMindAI utilizes an **Ephemeral In-Memory Store** (`MemoryVectorStore`) for its RAG engine.
 >
 > Due to the stateless nature of **Vercel Serverless Functions**, the application "forgets" the document context immediately after ingestion in the deployed environment. This results in the AI responding with _"I don't know"_ and missing source pills during live chat.
 >
 > **To verify this test locally (where the memory persists), follow the [Getting Started](#-getting-started) instructions below.**
 
-> **For the full persistent experience (Cloud Storage, Multi-Session Retrieval, and Hardened Monitoring), please visit [🛡️ Sentinel Docs](https://github.com/GeorgiDS9/sentinel-docs) — a production-grade evolution of this project utilizing Upstash Vector for permanent cloud memory.**
+> **For the full persistent experience (Cloud Storage, Multi-Session Retrieval, and Hardened Monitoring), please visit [🛡️ SentinelDocs](https://github.com/GeorgiDS9/sentinel-docs) — a production-grade evolution of this project utilizing Upstash Vector for permanent cloud memory.**
 
 ---
 
@@ -123,7 +129,3 @@ To verify the grounding of the RAG engine, I utilized the following "nonsense" d
     ```
 
 ---
-
-### 🧭 **Engineering Philosophy**
-
-As an engineer with nearly 5 years of experience in security environments (Trend Micro), I believe AI should be a "glass box," not a "black box." DocuMind AI demonstrates my ability to build **verifiable**, **cost-efficient**, and **secure** AI systems.

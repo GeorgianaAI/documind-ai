@@ -33,7 +33,7 @@ export function ChatInterface() {
     toast({
       title: "Chat error",
       description:
-        error.message || "DocuMind AI ran into an issue generating a response. Please try again.",
+        error.message || "DocuMindAI ran into an issue generating a response. Please try again.",
     });
   }, [error, toast]);
 
@@ -85,7 +85,7 @@ export function ChatInterface() {
             <Sparkles className="size-3.5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-medium">DocuMind AI</span>
+            <span className="font-medium">DocuMindAI</span>
             <span className="text-[11px] text-slate-400">
               Ask anything about your PDFs once ingestion is connected.
             </span>

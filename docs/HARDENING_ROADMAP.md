@@ -1,10 +1,8 @@
-# HARDENING_ROADMAP.md
-
-# DocuMind AI Hardening Roadmap
+# DocuMindAI Hardening Roadmap
 
 ## Purpose
 
-This document defines pragmatic hardening steps for DocuMind AI across 7 core AI engineering skills.
+This document defines pragmatic hardening steps for DocuMindAI across 7 core AI engineering skills.
 
 DocuMind is intentionally a **lean, evidence-first RAG shell** for PDF Q&A.  
 This roadmap improves reliability and trust without converting it into a full governance/security platform.
@@ -13,7 +11,7 @@ This roadmap improves reliability and trust without converting it into a full go
 
 ## Scope and Positioning
 
-DocuMind AI focuses on:
+DocuMindAI focuses on:
 
 - fast, grounded PDF chat
 - source transparency via citations/source pills
@@ -262,7 +260,7 @@ This sequence improves trust and operability while keeping DocuMind lightweight 
 
 ## Document Status
 
-This roadmap reflects the intended hardening scope for DocuMind AI as a lean RAG reference implementation.
+This roadmap reflects the intended hardening scope for DocuMindAI as a lean RAG reference implementation.
 
 It distinguishes:
 

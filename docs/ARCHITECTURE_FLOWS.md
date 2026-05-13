@@ -1,6 +1,6 @@
-# DocuMind AI | Architecture Flows
+# DocuMindAI | Architecture Flows
 
-This document captures the core runtime flows that define DocuMind AI's current behavior:
+This document captures the core runtime flows that define DocuMindAI's current behavior:
 
 - PDF ingestion: parse → chunk → embed → session-scoped in-memory store
 - RAG retrieval: cosine similarity scoring and context construction
@@ -102,7 +102,7 @@ IN-->>UI: 200 { status: "ok", sessionId, message: "Document ready for chat." }
 
 Retrieval-augmented generation grounds every response in the user's uploaded document.
 Without the retrieval step the model would answer from parametric memory alone, which
-is exactly what DocuMind AI is designed to prevent. The context window sent to GPT-4o-mini
+is exactly what DocuMindAI is designed to prevent. The context window sent to GPT-4o-mini
 is bounded to the top-3 semantically closest chunks from the active session.
 
 ### What the user should understand
@@ -298,15 +298,15 @@ end
 
 ## Status Codes & Error Messages
 
-| Endpoint                 | Status | Message                                                                                                   |
-| :----------------------- | :----- | :-------------------------------------------------------------------------------------------------------- |
-| `POST /api/rag/ingest`   | `400`  | `"A PDF file is required."`                                                                               |
-| `POST /api/rag/ingest`   | `400`  | `"<error from pipeline>"` (e.g. empty extraction)                                                         |
-| `POST /api/rag/ingest`   | `200`  | `{ status: "ok", sessionId, message: "Document ready for chat." }`                                        |
-| `POST /api/chat`         | `400`  | `"A user message or prompt is required."`                                                                 |
-| `POST /api/chat`         | `500`  | `"DocuMind AI encountered an issue generating a response. Please try again or reduce the document size."` |
-| `POST /api/chat/sources` | `400`  | `"A query is required to retrieve sources."`                                                              |
-| `POST /api/chat/sources` | `200`  | `{ sources: RetrievedChunk[] }`                                                                           |
+| Endpoint                 | Status | Message                                                                                                  |
+| :----------------------- | :----- | :------------------------------------------------------------------------------------------------------- |
+| `POST /api/rag/ingest`   | `400`  | `"A PDF file is required."`                                                                              |
+| `POST /api/rag/ingest`   | `400`  | `"<error from pipeline>"` (e.g. empty extraction)                                                        |
+| `POST /api/rag/ingest`   | `200`  | `{ status: "ok", sessionId, message: "Document ready for chat." }`                                       |
+| `POST /api/chat`         | `400`  | `"A user message or prompt is required."`                                                                |
+| `POST /api/chat`         | `500`  | `"DocuMindAI encountered an issue generating a response. Please try again or reduce the document size."` |
+| `POST /api/chat/sources` | `400`  | `"A query is required to retrieve sources."`                                                             |
+| `POST /api/chat/sources` | `200`  | `{ sources: RetrievedChunk[] }`                                                                          |
 
 ---
 
