@@ -21,7 +21,7 @@ const features: {
     title: "Semantic PDF Ingestion",
     description:
       "Upload any PDF. Text is extracted, split into 1,000-character chunks with 200-character overlap, and embedded via OpenAI for precision semantic retrieval.",
-    badge: "text-embedding-3-small",
+    badge: "OpenAI · text-embedding-3-small",
     badgeVariant: "sky",
   },
   {
@@ -31,7 +31,7 @@ const features: {
     title: "Evidence-First Answers",
     description:
       "Every response is grounded in your document content. Clickable source pills expose the exact chunks backing each answer — no hallucination, no guesswork.",
-    badge: "Top-3 cosine retrieval",
+    badge: "Upstash Vector · Top-3 cosine",
     badgeVariant: "violet",
   },
   {
@@ -51,7 +51,7 @@ const features: {
     title: "Session-Scoped Privacy",
     description:
       "Your documents never leave your session. All vectors are stored in a private Upstash namespace scoped to your session ID — no data crosses session boundaries.",
-    badge: "In-memory · No persistence",
+    badge: "Upstash Vector · Session-scoped",
     badgeVariant: "emerald",
   },
 ];
@@ -88,7 +88,7 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="mb-20 flex flex-col items-center text-center">
           <Pill variant="neutral" size="md" dot className="mb-5">
-            RAG-native · GPT-4o-mini · Session-isolated
+            RAG-native · GPT-4o-mini · Upstash Vector
           </Pill>
 
           <h1 className="max-w-3xl text-balance text-4xl font-semibold tracking-tight text-slate-50 md:text-5xl lg:text-6xl">
