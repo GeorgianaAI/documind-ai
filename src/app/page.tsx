@@ -50,7 +50,7 @@ const features: {
     iconBg: "bg-emerald-500/15 ring-emerald-500/40",
     title: "Session-Scoped Privacy",
     description:
-      "Your documents never leave the session. All vectors live in memory and are discarded when the session ends — nothing is written to a persistent database.",
+      "Your documents never leave your session. All vectors are stored in a private Upstash namespace scoped to your session ID — no data crosses session boundaries.",
     badge: "In-memory · No persistence",
     badgeVariant: "emerald",
   },
@@ -73,7 +73,7 @@ export default function LandingPage() {
             <span className="inline-flex size-6 items-center justify-center rounded-full bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40">
               <Brain className="size-3.5" />
             </span>
-            <span className="text-sky-100/80">DocuMindAI</span>
+            <span className="text-sky-100/80">DocuMind AI</span>
           </div>
 
           <Link
@@ -96,7 +96,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="mt-5 max-w-xl text-balance text-sm text-slate-300/80 md:text-base">
-            DocuMindAI ingests your documents, embeds them semantically, and answers your questions
+            DocuMind AI ingests your documents, embeds them semantically, and answers your questions
             with evidence — not guesses. Every response cites its source.
           </p>
 
@@ -148,7 +148,7 @@ export default function LandingPage() {
         {/* Footer */}
         <footer className="mt-20 flex items-center justify-center gap-2 text-[11px] text-slate-600">
           <Brain className="size-3" />
-          <span>DocuMindAI — RAG-native PDF intelligence</span>
+          <span>DocuMind AI — RAG-native PDF intelligence</span>
         </footer>
       </main>
     </div>

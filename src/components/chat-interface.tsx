@@ -30,11 +30,16 @@ export function ChatInterface() {
   useEffect(() => {
     if (!error) return;
 
-    toast({
-      title: "Chat error",
-      description:
-        error.message || "DocuMindAI ran into an issue generating a response. Please try again.",
-    });
+    let description =
+      error.message || "DocuMind AI ran into an issue generating a response. Please try again.";
+    try {
+      const parsed = JSON.parse(description) as { error?: string };
+      if (parsed.error) description = parsed.error;
+    } catch {
+      // not JSON — use message as-is
+    }
+
+    toast({ title: "Chat error", description });
   }, [error, toast]);
 
   async function fetchSources(prompt: string) {
@@ -85,7 +90,7 @@ export function ChatInterface() {
             <Sparkles className="size-3.5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-medium">DocuMindAI</span>
+            <span className="font-medium">DocuMind AI</span>
             <span className="text-[11px] text-slate-400">
               Ask anything about your PDFs once ingestion is connected.
             </span>

@@ -18,7 +18,7 @@ export default function WorkspacePage() {
             <span className="inline-flex size-6 items-center justify-center rounded-full bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40">
               <Brain className="size-3.5" />
             </span>
-            <span className="text-sky-100/80">DocuMindAI</span>
+            <span className="text-sky-100/80">DocuMind AI</span>
             <span className="h-1 w-1 rounded-full bg-sky-300/70" />
             <span className="text-slate-200/80">Enterprise RAG for PDFs</span>
           </div>
