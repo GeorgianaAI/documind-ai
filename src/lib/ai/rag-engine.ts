@@ -1,33 +1,12 @@
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { Index } from "@upstash/vector";
 import PDFParser from "pdf2json";
+
 import { chunkText } from "@/lib/ai/chunker";
+import { embeddings, getNamespace, ChunkMetadata } from "@/lib/ai/helpers";
 
 export type RetrievedChunk = {
   id: number;
   text: string;
 };
-
-type ChunkMetadata = {
-  text: string;
-};
-
-const embeddings = new OpenAIEmbeddings({
-  model: "text-embedding-3-small",
-});
-
-let _index: Index<ChunkMetadata> | null = null;
-
-function getIndex(): Index<ChunkMetadata> {
-  if (!_index) {
-    _index = new Index<ChunkMetadata>({
-      url: process.env.UPSTASH_VECTOR_REST_URL!,
-      token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
-    });
-  }
-  return _index;
-}
-
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -56,7 +35,7 @@ export async function ingestPdfForSession(buffer: Buffer, sessionId: string) {
     const chunks = chunkText(text, 1000, 200);
     const vectors = await embeddings.embedDocuments(chunks);
 
-    await getIndex().namespace(sessionId).upsert(
+    await getNamespace(sessionId).upsert(
       chunks.map((chunk, i) => ({
         id: `${sessionId}-${i}`,
         vector: vectors[i],
@@ -78,7 +57,7 @@ export async function retrieveRelevantChunks(
 ): Promise<RetrievedChunk[]> {
   const queryVector = await embeddings.embedQuery(query);
 
-  const results = await getIndex().namespace(sessionId).query<ChunkMetadata>({
+  const results = await getNamespace(sessionId).query<ChunkMetadata>({
     vector: queryVector,
     topK: k,
     includeMetadata: true,
