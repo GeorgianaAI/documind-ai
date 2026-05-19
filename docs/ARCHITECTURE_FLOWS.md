@@ -1,10 +1,10 @@
-# DocuMindAI | Architecture Flows
+# 🏛️ DocuMind AI | Architecture Flows
 
-This document captures the core runtime flows that define DocuMindAI's current behavior:
+This document captures the core runtime flows that define DocuMind AI's current behavior:
 
-- PDF ingestion: parse → chunk → embed → session-scoped in-memory store
-- RAG retrieval: cosine similarity scoring and context construction
-- Session isolation: localStorage-persisted UUID as in-memory scope boundary
+- PDF ingestion: parse → chunk → embed → upsert to Upstash Vector (namespace = sessionId)
+- RAG retrieval: Upstash Vector query with cosine similarity, context construction
+- Session isolation: localStorage-persisted UUID scopes all Upstash Vector reads and writes
 - Sources/citation flow: top-3 chunk retrieval for evidence pills
 
 Use this file as the engineering source of truth for flow-level behavior.  
@@ -18,8 +18,8 @@ When implementation changes, update this doc in the same PR.
 - **`/api/rag/ingest`** = ingestion pipeline: validate → extract → chunk → embed → upsert into session store.
 - **`/api/chat`** = RAG chat route: retrieve → construct context → stream GPT-4o-mini response.
 - **`/api/chat/sources`** = citation route: returns top-3 relevant chunks for source pills.
-- **RAG Engine** (`src/lib/ai/rag-engine.ts`) = PDF parser, chunker, OpenAI embedder, and cosine retrieval.
-- **Session Store** = global in-memory `Map<SessionId, SessionStore>`; session-scoped, no persistence beyond the server process.
+- **RAG Engine** (`src/lib/ai/rag-engine.ts`) = PDF parser, chunker, OpenAI embedder, and Upstash Vector retrieval.
+- **Session Store** = Upstash Vector index, namespaced by `sessionId` — persistent across serverless function instances.
 - **`useSessionId` hook** (`src/hooks/use-session-id.ts`) = generates and persists the session UUID in `localStorage`.
 
 Status code conventions used across flows:
@@ -35,11 +35,11 @@ Status code conventions used across flows:
 
 Uploaded PDFs must be parsed, segmented, and embedded before any retrieval can happen.
 The ingestion pipeline is the only write path into the session-scoped vector store —
-nothing reaches the in-memory store without passing through it first.
+nothing reaches the Upstash Vector store without passing through it first.
 
 ### What the user should understand
 
-Uploading a PDF triggers a sequential pipeline: text extraction → chunking → batched embedding → in-memory store upsert.
+Uploading a PDF triggers a sequential pipeline: text extraction → chunking → batched embedding → Upstash Vector upsert.
 All vectors are keyed to the active `sessionId` so no two sessions can see each other's data.
 On success the UI receives `{ status: "ok" }` which unlocks the chat interface.
 
@@ -60,9 +60,14 @@ participant UI as Workspace UI
 participant IN as /api/rag/ingest
 participant RAG as RAG Engine (rag-engine.ts)
 participant OAI as OpenAI Embeddings
-participant SS as Session Store (in-memory Map)
+participant SS as Upstash Vector (namespace = sessionId)
 
 UI->>IN: POST /api/rag/ingest (FormData: file, sessionId)
+
+IN->>IN: Zod safeParse — assert sessionId non-empty
+alt sessionId missing or empty
+  IN-->>UI: 400 "A valid session ID is required."
+end
 
 IN->>IN: formData.get("file") — assert instanceof Blob
 alt File missing or wrong type
@@ -87,8 +92,8 @@ RAG->>OAI: embedDocuments(allChunks) — single batched call
 Note over OAI: Model: text-embedding-3-small
 OAI-->>RAG: vectors[] (number[][])
 
-RAG->>SS: sessionStores.set(sessionId, { chunks, vectors, rawText })
-Note over SS: Keyed by sessionId — isolated namespace
+RAG->>SS: index.namespace(sessionId).upsert([{ id, vector, metadata: { text } }])
+Note over SS: Vectors stored in Upstash — persistent across serverless instances
 
 RAG-->>IN: resolves (void)
 IN-->>UI: 200 { status: "ok", sessionId, message: "Document ready for chat." }
@@ -102,7 +107,7 @@ IN-->>UI: 200 { status: "ok", sessionId, message: "Document ready for chat." }
 
 Retrieval-augmented generation grounds every response in the user's uploaded document.
 Without the retrieval step the model would answer from parametric memory alone, which
-is exactly what DocuMindAI is designed to prevent. The context window sent to GPT-4o-mini
+is exactly what DocuMind AI is designed to prevent. The context window sent to GPT-4o-mini
 is bounded to the top-3 semantically closest chunks from the active session.
 
 ### What the user should understand
@@ -133,10 +138,20 @@ autonumber
 participant UI as Workspace UI
 participant CH as /api/chat
 participant RAG as RAG Engine (rag-engine.ts)
-participant SS as Session Store (in-memory Map)
+participant SS as Upstash Vector (namespace = sessionId)
 participant OAI as OpenAI gpt-4o-mini
 
 UI->>CH: POST /api/chat { messages[], sessionId }
+
+CH->>CH: Zod safeParse — assert sessionId non-empty, messages array valid
+alt Invalid payload (missing sessionId, bad shape)
+  CH-->>UI: 400 "Invalid request payload."
+end
+
+CH->>CH: chatRatelimit.limit(ip) — sliding window 2 req / IP / day
+alt Rate limit exceeded
+  CH-->>UI: 429 "Daily chat limit reached. You have 2 turns per day — please try again tomorrow."
+end
 
 CH->>CH: Extract last message where role === "user" (or body.prompt)
 alt No user query found
@@ -145,13 +160,9 @@ end
 
 CH->>RAG: retrieveRelevantChunks(sessionId, query, k=3)
 RAG->>OAI: embedQuery(query) → queryVector (text-embedding-3-small)
-RAG->>SS: sessionStores.get(sessionId) → { chunks, vectors }
-alt Session not found
-  RAG-->>CH: [] (empty array)
-end
-RAG->>RAG: cosineSimilarity(queryVector, vectors[i]) for each chunk
-RAG->>RAG: Sort descending by score
-RAG->>RAG: Filter score > 0 → slice(0, 3)
+RAG->>SS: index.namespace(sessionId).query({ vector: queryVector, topK: 3, includeMetadata: true })
+Note over SS: Cosine ranking done by Upstash — returns scored results with chunk text in metadata
+RAG->>RAG: Filter score > 0 → map to RetrievedChunk[]
 RAG-->>CH: contextChunks[] (RetrievedChunk[])
 
 CH->>CH: Build context string — chunks joined by "\n\n---\n\n"
@@ -170,8 +181,8 @@ CH-->>UI: 200 streaming text (x-vercel-ai-data-stream: v1, maxDuration: 30s)
 
 ### Why this exists
 
-The session store is a server-side in-memory `Map`. Without per-session scoping, any
-request could read or overwrite vectors belonging to a different user's upload. The
+The session store is an Upstash Vector index namespaced by `sessionId`. Without per-session
+scoping, any request could read or overwrite vectors belonging to a different user's upload. The
 `sessionId` is the sole trust boundary enforcing per-user data isolation across all
 read and write operations.
 
@@ -182,14 +193,14 @@ On first mount, `useSessionId` generates a UUID (via `crypto.randomUUID()` or a
 The same ID is returned on every subsequent render. Both the PDF uploader and chat
 interface read this hook as their single source of truth and attach the ID to every
 API call. All server-side vector operations — ingest writes and retrieval reads — are
-scoped to `sessionStores.get(sessionId)`.
+scoped to `index.namespace(sessionId).query(...)` on Upstash Vector.
 
 ### What this flow guarantees
 
-- Cross-session data leakage is structurally impossible: the Map is keyed by `sessionId`
+- Cross-session data leakage is structurally impossible: Upstash namespaces are keyed by `sessionId`
   and no global read path exists.
 - Refreshing the page reuses the same `sessionId` (from `localStorage`) so previously
-  ingested documents remain retrievable within the same server process.
+  ingested documents remain retrievable — vectors persist in Upstash across serverless instances.
 - Both the uploader and chat interface guard against a `null` sessionId (during SSR) and
   display a `"Preparing workspace"` toast rather than sending an empty ID to the server.
 
@@ -208,13 +219,13 @@ flowchart TD
   F -- ready --> H[Attach sessionId to every API call]
 
   H --> I[POST /api/rag/ingest — FormData: sessionId]
-  I --> J[sessionStores.set sessionId — write isolated namespace]
+  I --> J[index.upsert — Upstash Vector namespace: sessionId]
 
   H --> K[POST /api/chat — body: sessionId]
-  K --> L[sessionStores.get sessionId — read isolated namespace]
+  K --> L[index.query — Upstash Vector namespace: sessionId]
 
   H --> M[POST /api/chat/sources — body: sessionId]
-  M --> N[sessionStores.get sessionId — read isolated namespace]
+  M --> N[index.query — Upstash Vector namespace: sessionId]
 ```
 
 ---
@@ -249,22 +260,23 @@ autonumber
 participant UI as Workspace UI
 participant SRC as /api/chat/sources
 participant RAG as RAG Engine (rag-engine.ts)
-participant SS as Session Store (in-memory Map)
+participant SS as Upstash Vector (namespace = sessionId)
 participant OAI as OpenAI Embeddings
 
 Note over UI: Chat response has finished streaming
 
 UI->>SRC: POST /api/chat/sources { query, sessionId }
 
-SRC->>SRC: body.query?.trim() — assert non-empty
-alt Query missing
-  SRC-->>UI: 400 "A query is required to retrieve sources."
+SRC->>SRC: Zod safeParse — assert query non-empty, sessionId non-empty
+alt Query or sessionId missing/empty
+  SRC-->>UI: 400 "A query and a valid session ID are required."
 end
 
 SRC->>RAG: retrieveRelevantChunks(sessionId, query, k=3)
 RAG->>OAI: embedQuery(query) → queryVector (text-embedding-3-small)
-RAG->>SS: sessionStores.get(sessionId) → { chunks, vectors }
-RAG->>RAG: cosineSimilarity → sort → filter score > 0 → slice(0, 3)
+RAG->>SS: index.namespace(sessionId).query({ vector: queryVector, topK: 3, includeMetadata: true })
+Note over SS: Cosine ranking done by Upstash — returns scored results with chunk text in metadata
+RAG->>RAG: Filter score > 0 → map to RetrievedChunk[]
 RAG-->>SRC: chunks[] (RetrievedChunk[]: { id, text })
 
 SRC-->>UI: 200 { sources: chunks }
@@ -281,32 +293,35 @@ end
 
 ## Key Constants Reference
 
-| Constant            | Value                      | File                                     | Purpose                                        |
-| :------------------ | :------------------------- | :--------------------------------------- | :--------------------------------------------- |
-| Chunk size          | `1000` chars               | `rag-engine.ts`                          | Segmentation unit                              |
-| Chunk overlap       | `200` chars                | `rag-engine.ts`                          | Context bridge between adjacent chunks         |
-| Retrieval top-k     | `3`                        | `chat/route.ts`, `chat/sources/route.ts` | Max chunks per query                           |
-| Relevance threshold | `score > 0` (cosine)       | `rag-engine.ts`                          | Floor filter — excludes zero-similarity chunks |
-| Embedding model     | `text-embedding-3-small`   | `rag-engine.ts`                          | OpenAI embedding service                       |
-| LLM model           | `gpt-4o-mini`              | `chat/route.ts`                          | OpenAI streaming completion                    |
-| Vercel max duration | `30` seconds               | `chat/route.ts`                          | Streaming function timeout                     |
-| Session storage key | `"documind-ai-session-id"` | `use-session-id.ts`                      | localStorage key for session persistence       |
-| Ingestion flag key  | `"documind-ai-ingested"`   | `chat-interface.tsx`                     | localStorage gate — unlocks chat after upload  |
-| Default session ID  | `"default-session"`        | all API routes                           | Fallback when no sessionId is provided         |
+| Constant            | Value                          | File                                     | Purpose                                        |
+| :------------------ | :----------------------------- | :--------------------------------------- | :--------------------------------------------- |
+| Chunk size          | `1000` chars                   | `rag-engine.ts`                          | Segmentation unit                              |
+| Chunk overlap       | `200` chars                    | `rag-engine.ts`                          | Context bridge between adjacent chunks         |
+| Retrieval top-k     | `3`                            | `chat/route.ts`, `chat/sources/route.ts` | Max chunks per query                           |
+| Relevance threshold | `score > 0` (cosine)           | `rag-engine.ts`                          | Floor filter — excludes zero-similarity chunks |
+| Embedding model     | `text-embedding-3-small`       | `rag-engine.ts`                          | OpenAI embedding service                       |
+| LLM model           | `gpt-4o-mini`                  | `chat/route.ts`                          | OpenAI streaming completion                    |
+| Vercel max duration | `30` seconds                   | `chat/route.ts`                          | Streaming function timeout                     |
+| Session storage key | `"documind-ai-session-id"`     | `use-session-id.ts`                      | localStorage key for session persistence       |
+| Ingestion flag key  | `"documind-ai-ingested"`       | `chat-interface.tsx`                     | localStorage gate — unlocks chat after upload  |
+| sessionId guard     | required — `z.string().min(1)` | all API routes                           | Missing or empty sessionId returns `400`       |
 
 ---
 
 ## Status Codes & Error Messages
 
-| Endpoint                 | Status | Message                                                                                                  |
-| :----------------------- | :----- | :------------------------------------------------------------------------------------------------------- |
-| `POST /api/rag/ingest`   | `400`  | `"A PDF file is required."`                                                                              |
-| `POST /api/rag/ingest`   | `400`  | `"<error from pipeline>"` (e.g. empty extraction)                                                        |
-| `POST /api/rag/ingest`   | `200`  | `{ status: "ok", sessionId, message: "Document ready for chat." }`                                       |
-| `POST /api/chat`         | `400`  | `"A user message or prompt is required."`                                                                |
-| `POST /api/chat`         | `500`  | `"DocuMindAI encountered an issue generating a response. Please try again or reduce the document size."` |
-| `POST /api/chat/sources` | `400`  | `"A query is required to retrieve sources."`                                                             |
-| `POST /api/chat/sources` | `200`  | `{ sources: RetrievedChunk[] }`                                                                          |
+| Endpoint                 | Status | Message                                                                                                   |
+| :----------------------- | :----- | :-------------------------------------------------------------------------------------------------------- |
+| `POST /api/rag/ingest`   | `400`  | `"A valid session ID is required."` (Zod — missing/empty sessionId)                                       |
+| `POST /api/rag/ingest`   | `400`  | `"A PDF file is required."`                                                                               |
+| `POST /api/rag/ingest`   | `400`  | `"<error from pipeline>"` (e.g. empty extraction)                                                         |
+| `POST /api/rag/ingest`   | `200`  | `{ status: "ok", sessionId, message: "Document ready for chat." }`                                        |
+| `POST /api/chat`         | `400`  | `"Invalid request payload."` (Zod — missing/empty sessionId or bad shape)                                 |
+| `POST /api/chat`         | `429`  | `"Daily chat limit reached. You have 2 turns per day — please try again tomorrow."`                       |
+| `POST /api/chat`         | `400`  | `"A user message or prompt is required."`                                                                 |
+| `POST /api/chat`         | `500`  | `"DocuMind AI encountered an issue generating a response. Please try again or reduce the document size."` |
+| `POST /api/chat/sources` | `400`  | `"A query and a valid session ID are required."` (Zod)                                                    |
+| `POST /api/chat/sources` | `200`  | `{ sources: RetrievedChunk[] }`                                                                           |
 
 ---
 

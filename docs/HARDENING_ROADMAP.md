@@ -1,8 +1,8 @@
-# DocuMindAI Hardening Roadmap
+# 🧱 DocuMind AI Hardening Roadmap
 
 ## Purpose
 
-This document defines pragmatic hardening steps for DocuMindAI across 7 core AI engineering skills.
+This document defines pragmatic hardening steps for DocuMind AI across 7 core AI engineering skills.
 
 DocuMind is intentionally a **lean, evidence-first RAG shell** for PDF Q&A.  
 This roadmap improves reliability and trust without converting it into a full governance/security platform.
@@ -11,12 +11,12 @@ This roadmap improves reliability and trust without converting it into a full go
 
 ## Scope and Positioning
 
-DocuMindAI focuses on:
+DocuMind AI focuses on:
 
 - fast, grounded PDF chat
 - source transparency via citations/source pills
 - low-friction developer experience
-- session-scoped privacy through in-memory isolation
+- session-scoped privacy through Upstash Vector namespace isolation
 
 It does **not** aim (in this repo) to become a full enterprise governance product.
 
@@ -33,13 +33,13 @@ Legend:
 ### 1) System Design
 
 - **Status:** Implemented (Strong foundation)
-- **Evidence:** Clear ingest -> chunk -> embed -> retrieve -> answer flow, API-route boundaries, session-scoped in-memory retrieval model.
+- **Evidence:** Clear ingest → chunk → embed → upsert → retrieve → answer flow, API-route boundaries, session-scoped Upstash Vector namespace isolation.
 
 ### 2) Tool and Contract Design
 
-- **Status:** Implemented (Good), Planned (Consistency hardening)
-- **Evidence:** Route-level request handling and validation patterns are present.
-- **Gap:** Error payloads are not yet fully standardized across all routes.
+- **Status:** Implemented (Strong), Planned (Error shape standardization)
+- **Evidence:** Zod schemas enforced at all three route boundaries (`/api/chat`, `/api/chat/sources`, `/api/rag/ingest`). Missing or invalid `sessionId` returns `400` — no silent fallbacks. Input shape validated before any RAG engine access.
+- **Gap:** Error payloads are not yet fully standardized across all routes — no consistent `{ errorCode, message, requestId }` shape or request correlation IDs.
 
 ### 3) Retrieval Engineering
 
@@ -55,9 +55,9 @@ Legend:
 
 ### 5) Security and Safety
 
-- **Status:** Implemented (Basic guardrails), Planned (Light hardening), Deferred (Enterprise controls)
-- **Evidence today:** Context-bounded answering behavior, session isolation, server-side key usage.
-- **Gap:** No formal auth/RBAC/tenant isolation stack, limited abuse/rate controls.
+- **Status:** Implemented (Good baseline), Planned (Further hardening), Deferred (Enterprise controls)
+- **Evidence today:** Context-bounded answering behavior, session isolation, server-side key usage, Upstash Redis rate limiting (2 chat turns per IP per day, sliding window) on `/api/chat`.
+- **Gap:** No file size/type enforcement on ingest, no formal auth/RBAC/tenant isolation stack.
 
 ### 6) Evaluation and Observability
 
@@ -127,25 +127,32 @@ Legend:
 
 ### Planned (Near-Term)
 
-1. **Codify baseline eval set**
-   - include Neon Pink Moon style grounding tests
-   - include “answer should be I don’t know” negative tests
+1. **LangSmith tracing**
+   - Add `LANGCHAIN_TRACING_V2=true`, `LANGCHAIN_API_KEY`, `LANGSMITH_PROJECT` env vars
+   - Auto-traces all `@langchain/openai` calls (embedDocuments, embedQuery) with zero code changes
+   - Each trace captures: query → embedding latency → Upstash chunk scores → context built → response latency
+   - Note: Vercel AI SDK (`streamText`) is not LangChain — the GPT-4o-mini generation step requires manual wrapping to appear in traces
+   - Developer-facing only — no UI changes. Traces live in the LangSmith dashboard (smith.langchain.com)
 
-2. **Define minimal retrieval metrics**
-   - retrieval hit rate (did top-k include expected chunk)
-   - grounded answer rate
-   - abstention correctness (unknown when context absent)
+2. **Codify baseline eval set in LangSmith**
+   - Formalise Neon Pink Moon grounding tests as a LangSmith dataset
+   - Add “answer should be I don’t know” negative cases
+   - Run evals on demand against the deployed endpoint
 
-3. **Structured logs for core events**
-   - ingest complete: chunk count, processing time
-   - retrieval: query, top-k ids/scores
-   - generation: response latency, error class
+3. **Define minimal retrieval metrics**
+   - Retrieval hit rate (did top-k include expected chunk)
+   - Grounded answer rate
+   - Abstention correctness (unknown when context absent)
+
+4. **Structured logs for core events**
+   - Ingest complete: chunk count, processing time
+   - Retrieval: query, top-k ids/scores
+   - Generation: response latency, error class
 
 ### Deferred
 
-- LLM-as-a-judge pipelines
-- external tracing platforms
-- continuous eval automation on every deployment
+- LLM-as-a-judge automated scoring pipelines
+- Continuous eval automation on every deployment
 
 ### Evaluation Exit Criteria (DocuMind Scope)
 
@@ -173,8 +180,8 @@ Legend:
    - stricter system prompt for context-only answering
    - explicit handling for empty/low-confidence retrieval
 
-3. **Light rate limiting at route layer**
-   - basic per-session throttle on ingest/chat endpoints
+3. **Light rate limiting at route layer** ✅ Implemented
+   - Upstash Redis sliding window: 2 chat turns per IP per day on `/api/chat`
 
 4. **Secrets and environment hygiene**
    - startup checks for required env vars
@@ -206,9 +213,10 @@ Legend:
 
 ### Planned (Near-Term)
 
-1. **Clarify product boundary in README/UI**
-   - DocuMind = lean, local/session RAG reference product
-   - Sentinel = hardened governance/security extension
+1. **Clarify product boundary in README/UI** ✅ Implemented
+   - DocuMind = lean, session-scoped RAG reference product
+   - README infrastructure warning replaced with accurate deployment note
+   - Sentinel reference updated to reflect its role as the production-grade evolution
 
 2. **Improve trust UX copy**
    - clearer “why no answer” messaging
@@ -238,7 +246,7 @@ Legend:
 To preserve DocuMind DNA and avoid scope creep, these are deferred:
 
 - enterprise auth stack (SSO/SAML/RBAC depth)
-- persistent multi-tenant cloud memory architecture
+- multi-tenant cloud memory architecture (vectors are now persistent via Upstash, but single-session scoped — not multi-tenant)
 - full governance dashboard program
 - advanced reliability/SRE platforming
 - heavy productization and monetization layers
@@ -260,7 +268,7 @@ This sequence improves trust and operability while keeping DocuMind lightweight 
 
 ## Document Status
 
-This roadmap reflects the intended hardening scope for DocuMindAI as a lean RAG reference implementation.
+This roadmap reflects the intended hardening scope for DocuMind AI as a lean RAG reference implementation.
 
 It distinguishes:
 

@@ -1,16 +1,16 @@
-# 🧠 DocuMindAI: Evidence-First RAG for Document Intelligence
+# 🧠 DocuMind AI: Evidence-First RAG for Document Intelligence
 
 **[🚀 View Live Demo](https://documind-ai-three.vercel.app)** | **[📂 View Codebase](https://github.com/GeorgiDS9/documind-ai)**
 
 **Modern AI Orchestration | Next.js 16 | Verifiable Citations**
 
-**DocuMindAI** is a professional **Retrieval-Augmented Generation (RAG)** platform designed to transform static PDFs into interactive, grounded intelligence. Built in **March 2026**, this project focuses on **AI reliability** and **source transparency**, ensuring every response is backed by specific evidence from the uploaded documentation.
+**DocuMind AI** is a professional **Retrieval-Augmented Generation (RAG)** platform designed to transform static PDFs into interactive, grounded intelligence. Built in **March 2026**, this project focuses on **AI reliability** and **source transparency**, ensuring every response is backed by specific evidence from the uploaded documentation.
 
 ---
 
 ### 🧭 **Engineering Philosophy**
 
-As an engineer with nearly 5 years of experience in security environments (Trend Micro), I believe AI should be a "glass box," not a "black box." DocuMindAI demonstrates my ability to build **verifiable**, **cost-efficient**, and **secure** AI systems.
+As an engineer with nearly 5 years of experience in security environments (Trend Micro), I believe AI should be a "glass box," not a "black box." DocuMind AI demonstrates my ability to build **verifiable**, **cost-efficient**, and **secure** AI systems.
 
 ---
 
@@ -19,67 +19,51 @@ As an engineer with nearly 5 years of experience in security environments (Trend
 - **Evidence-First Chat:** Implemented a metadata-driven retrieval system that provides "Source Pills" for every response, allowing users to verify AI claims against raw PDF text.
 - **Streaming Serverless Architecture:** Optimized for Vercel/Serverless environments using the Vercel AI SDK to bypass 10-second execution timeouts via real-time token streaming.
 - **Zero-Hallucination Guardrails:** Engineered strict system prompts and semantic similarity thresholds to ensure the model only answers based on provided context.
-- **Session-Based Memory:** Utilizes a secure, in-memory vector store that isolates document context to the current browser session, maintaining data privacy without persistent database costs.
+- **Session-Based Privacy:** Vectors are stored in Upstash Vector under a per-session namespace. No document data crosses session boundaries — isolation is enforced at the vector store level.
 
 ---
 
-## 🖼️ Product Snapshot
+## 🖼️ DocuMind AI - Product Snapshot
 
-**DocuMindAI Landing Page**
-![Sentinel Landing Page](./docs/assets/documind-landing-page.png)
+**Landing Page**
+![DocuMind AI Landing Page](./docs/assets/documind-landing-page.png)
 
-**DocuMindAI Workspace**
-![DocuMindAI Landing Page](./docs/assets/documind-workspace.png)
+**Workspace**
+![DocuMind AI Workspace](./docs/assets/documind-workspace.png)
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** Next.js 16 (App Router), Tailwind CSS, Shadcn/UI (**Nova Glassmorphic Theme**)
+- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS 4, Shadcn/UI (**Radix Nova theme**)
 - **AI Orchestration:** LangChain.js & Vercel AI SDK
 - **LLM & Embeddings:** OpenAI `gpt-4o-mini` & `text-embedding-3-small`
-- **PDF Processing:** `pdf2json` (Server-side text extraction)
-- **Vector Storage:** `MemoryVectorStore` (Cosine Similarity Search)
+- **PDF Processing:** `pdf2json` (server-side text extraction, no browser dependencies)
+- **Vector Storage:** Upstash Vector (session-namespaced, persistent across serverless instances, cosine similarity)
+- **Validation:** Zod (API boundary schema enforcement — all route handlers validate input before touching the RAG engine)
+- **Rate Limiting:** Upstash Redis — 2 chat turns per IP per day (sliding window)
 
 ---
 
-## 🏗️ Technical Challenges & Solutions
-
-### 1. The "DOMMatrix" Server-Side Conflict
-
-**Challenge:** Standard PDF libraries (like `pdf-parse`) often rely on browser-only Canvas APIs, causing `DOMMatrix is not defined` crashes in Next.js 16 server environments.
-**Solution:** Refactored the ingestion pipeline to use `pdf2json` in a strict text-only mode with `globalThis` polyfills. This ensured stable server-side parsing without the overhead of browser-dependent renderers or Canvas dependencies.
-
-### 2. Stream Protocol Alignment
-
-**Challenge:** Mismatches between raw text streams and the AI SDK's expected data protocol often result in "empty UI" responses despite successful network calls.
-**Solution:** Aligned the server-side `toTextStreamResponse` with custom headers (`x-vercel-ai-data-stream: v1`) and configured the frontend hooks with `streamProtocol: "text"` to bridge the protocol gap and enable real-time UI rendering.
-
-### 3. The "Subway Slicer" Logic (Chunking)
-
-**Challenge:** Passing an entire PDF to an LLM is costly and leads to "lost-in-the-middle" accuracy issues.
-**Solution:** Implemented a **RecursiveCharacterTextSplitter** with a 1000-character chunk size and 200-character overlap. This preserves semantic context across chunk boundaries, significantly improving retrieval accuracy for complex queries.
-
----
 
 > [!TIP]
 >
 > **🧭 Architecture Flows:** For end-to-end flow views across PDF ingestion, RAG retrieval, session isolation, and source citations, see [`ARCHITECTURE_FLOWS.md`](./docs/ARCHITECTURE_FLOWS.md).
 > <br />
 > **Hardening Roadmap:** For architecture maturity scope, near-term reliability baseline, and intentionally deferred initiatives, see [`HARDENING_ROADMAP.md`](./docs/HARDENING_ROADMAP.md).
+> <br />
+> **Technical Advisory:** For key architectural decisions, tradeoffs, and significant fixes — including the in-memory → Upstash Vector migration and core RAG concepts — see [`TECHNICAL_ADVISORY.md`](./docs/TECHNICAL_ADVISORY.md).
 
 ---
 
-## ⚠️ Infrastructure Limitation
+## ℹ️ Deployment Notes
 
-> [!WARNING]
-> DocuMindAI utilizes an **Ephemeral In-Memory Store** (`MemoryVectorStore`) for its RAG engine.
+> [!NOTE]
+> DocuMind AI uses **Upstash Vector** for persistent vector storage — vectors survive across Vercel serverless function instances. The live demo is fully functional end-to-end.
 >
-> Due to the stateless nature of **Vercel Serverless Functions**, the application "forgets" the document context immediately after ingestion in the deployed environment. This results in the AI responding with _"I don't know"_ and missing source pills during live chat.
->
-> **To verify this test locally (where the memory persists), follow the [Getting Started](#-getting-started) instructions below.**
+> **All five environment variables** (OpenAI + Upstash Vector + Upstash Redis) must be configured in Vercel project settings for the deployed version to work. See [Getting Started](#-getting-started) for the full list.
 
-> **For the full persistent experience (Cloud Storage, Multi-Session Retrieval, and Hardened Monitoring), please visit [🛡️ SentinelDocs](https://github.com/GeorgiDS9/sentinel-docs) — a production-grade evolution of this project utilizing Upstash Vector for permanent cloud memory.**
+> **Looking for a more advanced evolution of this project?** Visit [🛡️ Sentinel Docs](https://github.com/GeorgiDS9/sentinel-docs) — a production-grade RAG platform with multi-tenant architecture, hardened monitoring, and enterprise controls.
 
 ---
 
@@ -119,13 +103,31 @@ To verify the grounding of the RAG engine, I utilized the following "nonsense" d
     npm install
     ```
 2.  **Environment Setup:**
-    Create a `.env.local` in the root and add your OpenAI key:
+    Copy `.env.example` to `.env.local` and fill in your keys:
     ```bash
     OPENAI_API_KEY=sk-proj-xxxx...
+    UPSTASH_VECTOR_REST_URL=https://...
+    UPSTASH_VECTOR_REST_TOKEN=...
+    UPSTASH_REDIS_REST_URL=https://...
+    UPSTASH_REDIS_REST_TOKEN=...
     ```
 3.  **Run Development:**
     ```bash
     npm run dev
     ```
+
+---
+
+## 🧩 Testing
+
+DocuMind AI uses **Vitest** for unit and logic tests, with **React Testing Library** for component coverage.
+
+```bash
+npm run test          # Run all tests once
+npm run test:watch    # Watch mode (re-runs on file change)
+npm run test:coverage # Generate coverage report → coverage/
+```
+
+The test suite covers the `cn()` utility and is structured to grow alongside the RAG engine. Any change to chunking logic, embedding calls, or cosine retrieval must include a corresponding test update.
 
 ---

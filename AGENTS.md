@@ -1,8 +1,8 @@
-# DocuMindAI | Architecture & Governance
+# DocuMind AI | Architecture & Governance
 
 ## 1. Project Intent
 
-DocuMindAI is a RAG-native PDF intelligence platform. Users upload PDFs which are chunked, embedded, and stored in a session-scoped in-memory vector store. Grounded, streaming answers are returned by GPT-4o-mini using the top-3 semantically relevant chunks, with clickable source pills exposing the evidence behind every response.
+DocuMind AI is a RAG-native PDF intelligence platform. Users upload PDFs which are chunked, embedded, and stored in a session-scoped in-memory vector store. Grounded, streaming answers are returned by GPT-4o-mini using the top-3 semantically relevant chunks, with clickable source pills exposing the evidence behind every response.
 
 ## 2. Technical Stack
 

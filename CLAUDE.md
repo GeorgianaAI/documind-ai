@@ -1,133 +1,93 @@
-# DocuMindAI | Architecture & Governance
+# DocuMind AI | Architecture & Governance
 
 ## 1. Project Intent
 
-DocuMindAI is a RAG-native PDF intelligence platform. Users upload PDFs which are chunked, embedded, and stored in a session-scoped in-memory vector store. Grounded, streaming answers are returned by GPT-4o-mini using the top-3 semantically relevant chunks, with clickable source pills exposing the evidence behind every response.
+DocuMind AI is a RAG-native PDF intelligence platform. Users upload PDFs, which are chunked, embedded, and stored in Upstash Vector under a session-scoped namespace. Grounded, streaming answers are returned by GPT-4o-mini using the top-3 semantically relevant chunks, with source pills exposing the evidence behind every response. See [Architecture reference](memory) for full context.
 
 ## 2. Technical Stack
 
-- **Framework:** Next.js 16 (App Router + React 19)
-- **UI:** Tailwind CSS v4 + Shadcn/UI (Radix Nova theme)
-- **AI Orchestration:** LangChain.js + Vercel AI SDK
-- **LLM & Embeddings:** OpenAI `gpt-4o-mini` + `text-embedding-3-small`
-- **Vector Store:** Custom in-memory cosine-similarity store (session-scoped, no persistence)
-- **PDF Parsing:** `pdf2json` (server-side text extraction)
-- **Validation:** Zod (API boundary contracts)
-- **Testing:** Vitest (unit/logic) + React Testing Library
-- **Deployment:** Vercel
+See [Tech Stack reference](memory) for full dependency list and version details.
 
-## 2.1 Version Governance & Stability Lock
+**Next.js 16** App Router, **React 19**, TypeScript strict, **Tailwind CSS 4**, Shadcn/UI (Radix Nova theme), LangChain.js, Vercel AI SDK, **Zod** (API boundary validation), **pdf2json** (server-side PDF parsing), Vitest + React Testing Library. Deployed on Vercel.
 
-**Strict Version Policy:** This project is locked to **Next.js 16** and **React 19.2.3**. Do not upgrade without an explicit decision from the Architect.
+## 2.1 Version Governance
 
-- **Reason:** The codebase is built and tested on these versions. An upgrade mid-project introduces churn with no concrete benefit.
-- **Constraint:** All new code must use React 19 patterns. If an "upgrade available" notice appears, ignore it.
-- **Vitest & coverage:** `vitest` and `@vitest/coverage-v8` must always be on the **same major version**. Never bump one without bumping the other.
+Locked to Next.js 16 and React 19.2.3. Never upgrade without explicit Architect decision. `vitest` and `@vitest/coverage-v8` must always share the same major version — never bump one without the other.
 
 ## 3. Development Workflow
 
-- **Feature Branches:** Prefix with `feat/`, `fix/`, or `refactor/`.
-- **Atomic Commits:** Group changed files meaningfully; create several commits per feature. Separate concerns:
-  1. Architecture / config / governance files
-  2. Route scaffolding (new pages, layouts)
-  3. UI / layout components
-  4. API routes and service logic
-  5. Tests
-- **Commit Metadata:** Never include "Co-authored-by: Claude", "Co-Authored-By:", or any AI attribution tags in commit messages.
-  - **How to apply:** Write all commit messages without any trailing attribution lines. This applies to every commit, on every branch, always.
-- **No Merges:** Pushing to remote is encouraged, but merging is restricted to the Architect.
-- **Branch Hygiene Gate:** Before creating any new branch, run `git branch` and check for unmerged feature branches. If any exist, stop and alert the Architect. List the unmerged branches and wait for explicit confirmation before proceeding.
-- **Modular Architecture:**
-  - If a component or file exceeds approximately 200 lines, extract logic into co-located flat files within the same directory (e.g., `constants.ts`, `types.ts`, `helpers.ts`).
-  - Keep RAG/AI/PDF logic (Services) out of the UI (Components). Use API Route Handlers for pipeline execution and maintain clean, declarative JSX.
+### Branching & Commits
 
-## 4. Denied Permission to Secret File Access
+- `feat/`, `fix/`, `refactor/` branches for all code changes.
+- No merges — merging restricted to Architect.
+- **Branch Hygiene Gate:** Before creating any branch, run `git branch --merged main`. If any unmerged feature branches exist, stop and alert the Architect.
+- Atomic commits grouped by concern: config/governance, routes, UI components, services, tests.
+- **No AI tags** in commit messages (`Co-authored-by: Claude` etc. — never).
 
-Hard rule: **never** read, search, open, cat, grep, ripgrep, summarize, or inspect real secret-bearing files **under any circumstance** unless the user explicitly overrides this rule for the current task. This includes `.env`, `.env.local`, `.env.development`, `.env.production`, `.env.test`, any other real secret `.env.*` variants, `*.pem`, `*.key`, and `~/.ssh/**`. If a task requires knowing which keys or variables exist, read `.env.example` only. If a task appears to require actual secret values from a real env file, stop and ask the user instead of accessing that file.
+### Code Quality
 
-## 5. Code Layout & Architecture
+- File size limit: ~200 lines. Extract logic into co-located flat files (`constants.ts`, `types.ts`, `helpers.ts`).
+- RAG/AI/PDF logic stays in API Route Handlers. Keep JSX declarative — no pipeline logic in components.
+- **No repeated UI patterns.** Check `src/components/ui/` before writing any button, card, or layout block inline. If a pattern appears more than twice, extract it as a reusable component.
 
-Maintain thin entrypoints. Logic must be extracted once a file exceeds approx. 200 lines.
+### Naming
 
-### Directory Mapping
-
-| Area                                | Purpose                                                                                            |
-| :---------------------------------- | :------------------------------------------------------------------------------------------------- |
-| `src/app/`                          | **Routing Only:** `page.tsx`, `layout.tsx`. Minimal logic.                                         |
-| `src/app/workspace/`                | **RAG Shell Route:** The live PDF-upload + chat workspace.                                         |
-| `src/app/api/chat/route.ts`         | **Chat Route:** LangChain retrieval pipeline + GPT-4o-mini streaming.                              |
-| `src/app/api/chat/sources/route.ts` | **Sources Route:** Returns top-3 relevant chunks for citation pills.                               |
-| `src/app/api/rag/ingest/route.ts`   | **Ingestion Route:** PDF parsing, chunking, embedding, session-store upsert.                       |
-| `src/components/`                   | **Feature Components:** `chat-interface.tsx`, `pdf-uploader.tsx`.                                  |
-| `src/components/ui/`                | **Primitives:** Shadcn/UI base components (`button`, `card`, `input`, `scroll-area`, `use-toast`). |
-| `src/lib/ai/rag-engine.ts`          | **RAG Engine:** PDF text extraction, chunking, embedding, cosine retrieval.                        |
-| `src/lib/utils.ts`                  | **Glue:** `cn()` and shared formatting utilities.                                                  |
-| `src/hooks/use-session-id.ts`       | **State:** Session UUID hook — single source of truth for in-memory store scoping.                 |
-| `src/test/setup.ts`                 | **Test bootstrap:** Vitest + Testing Library DOM setup.                                            |
-
-### Naming Conventions
-
-- **Markdown Files:** All `.md` files must have **ALL_CAPS** names (e.g., `README.md`, `CLAUDE.md`). Extension stays lowercase.
-- **React Hooks:** Use **camelCase** for hook filenames (e.g., `use-session-id.ts`).
-- **API Routes:** All route handlers live in `src/app/api/[domain]/[action]/route.ts`.
+- Markdown: ALL_CAPS. React hooks: camelCase. Components: PascalCase.
+- API Routes: `src/app/api/[domain]/[action]/route.ts`.
 
 ### TypeScript Strictness
 
-`tsconfig.json` has `"strict": true`. Maintain that posture:
+No `any`. Use `unknown` with type guards, explicit interfaces, or `Record<string, unknown>`. Explicit generics: `useState<boolean>(false)`, `useRef<HTMLDivElement>(null)`.
 
-- **No `any` types:** Use `unknown` with a type guard, explicit interfaces, or `Record<string, unknown>`.
-- **Explicit `useState` generics:** Always annotate state — e.g., `useState<boolean>(false)`, `useState<RetrievedChunk[]>([])`.
-- **Explicit `useRef` generics:** Always annotate — e.g., `useRef<HTMLDivElement>(null)`.
+## 4. App Structure
 
-### Architectural Rules
+See [Architecture reference](memory) for the full directory map and file responsibilities.
 
-- **Path Aliases:** Strictly use `@/*` for all internal imports (e.g., `import { cn } from "@/lib/utils"`).
-- **Server-First:** Prioritise Route Handlers over client-side fetching for all AI/RAG work — keep API keys off the client.
-- **Session Isolation:** All in-memory vector operations must target the session-scoped store. Never read or mutate across sessions.
-- **Validation at Boundaries Only:** Zod schemas enforce contracts at API routes. Do not re-validate data already inside the trusted pipeline.
-- **Chunking is authoritative:** The 1,000-character / 200-character overlap chunking in `rag-engine.ts` is the retrieval contract. Do not change these values without updating the corresponding tests.
+`src/app/` (routing only) · `src/app/workspace/` (RAG shell) · `src/app/api/chat/` + `src/app/api/chat/sources/` + `src/app/api/rag/ingest/` (API routes) · `src/components/` (feature components) · `src/components/ui/` (Shadcn primitives: `button`, `card`, `input`, `pill`, `scroll-area`, `use-toast`) · `src/lib/ai/rag-engine.ts` (RAG engine) · `src/hooks/use-session-id.ts` (session state) · `src/lib/utils.ts` (`cn()`) · `src/lib/utils.test.ts` (unit tests) · `src/test/setup.ts` (Vitest bootstrap).
 
-## 5.1 UI Consistency & Radix Nova Theme
+## 5. Architectural Rules
 
-Strict adherence to the Shadcn/UI Radix Nova aesthetic is mandatory.
-
-- **Component Reuse:** Prioritise existing Shadcn primitives in `src/components/ui/`. If a bespoke pattern is used more than twice, extract it into a reusable component.
-- **Tailwind v4:** Use CSS variables and the `cn()` utility from `@/lib/utils`. Do not use deprecated Tailwind v3 patterns.
-- **Color Discipline:**
-  - **Sky blue:** Primary interactive elements, upload actions, AI indicators.
-  - **Violet:** Chat/AI response surfaces, streaming indicators.
-  - **Emerald/Green:** Successful ingestion, session-ready confirmations.
-  - **Amber/Yellow:** Warnings, loading states, processing indicators.
-  - **Slate neutrals:** Backgrounds, cards, borders, muted text.
+- **Path Aliases:** `@/*` for all internal imports.
+- **Server-First:** All AI/RAG calls happen in Route Handlers. API keys never reach the client.
+- **Session Guard:** All API handlers require a non-empty `sessionId` and return 400 if absent. Never remove this guard — it is the first line of defence against cross-session contamination.
+- **Zod at every boundary:** All route handlers validate input with Zod before touching the RAG engine. Never re-validate data already inside the trusted pipeline.
+- **Chunking contract:** 1,000-character chunks / 200-character overlap in `rag-engine.ts`. Do not change without updating the corresponding tests.
 
 ## 6. Testing Invariants
 
-These invariants must not be weakened by any change:
+- Any change to chunking, embedding, or cosine retrieval → update the corresponding Vitest unit test.
+- All new route handlers: Zod validation before RAG engine access.
+- `vitest` and `@vitest/coverage-v8` must share the same major version in `package.json`.
+- Never remove the `sessionId` guard from API handlers.
 
-1. **RAG Engine:** Any change to chunking logic, embedding calls, or cosine retrieval requires a corresponding Vitest unit test update.
-2. **API Contracts:** All new route handlers must validate input with Zod before touching the RAG engine.
-3. **Version Parity:** `vitest` and `@vitest/coverage-v8` must always share the same major version in `package.json`.
-4. **Session Guard:** The `sessionId` guard at the top of each API handler is the first line of defence against cross-session contamination. Never remove it.
+## 7. UI Theme
 
-## 7. Operational Commands
+Dark slate + Radix Nova. `globals.css` is the source of truth for CSS variables. Use `cn()` from `@/lib/utils`.
+
+**Color discipline:** Sky blue (interactive/upload) · Violet (AI surfaces) · Emerald (success/ingestion) · Amber (warnings/loading) · Slate neutrals (backgrounds, borders, muted text).
+
+## 8. Denied Permission to Secret File Access
+
+Hard rule: **never** read, search, open, cat, grep, ripgrep, summarize, or inspect real secret-bearing files **under any circumstance** unless the user explicitly overrides this rule for the current task. This includes `.env`, `.env.local`, `.env.development`, `.env.production`, `.env.test`, any other `.env.*` variants, `*.pem`, `*.key`, and `~/.ssh/**`. Read `.env.example` only. If actual secret values are needed, stop and ask.
+
+## 9. Operational Commands
 
 ```bash
-# Development
-npm run dev           # Start Next.js dev server
-
-# Code Quality
-npm run lint          # ESLint (src/**/*.{ts,tsx})
-npm run type-check    # TypeScript strict check (no emit)
-
-# Unit & Logic Tests (Vitest)
-npm run test          # Run all unit tests once
-npm run test:watch    # Watch mode
+npm run dev           # Next.js dev server
+npm run lint          # ESLint
+npm run type-check    # TypeScript strict check
+npm run test          # Vitest — all tests, once
+npm run test:watch    # Vitest watch mode
 npm run test:coverage # Coverage report (coverage/)
-
-# Security
-npm run audit:high    # npm audit at high severity level
-
-# Production build
-npm run build
-npm start
+npm run audit:high    # npm audit at high severity
+npm run build && npm start  # Production build + serve
 ```
+
+## 10. Context & Memory
+
+Memory files live in the Claude memory system. Load by task:
+
+- **Before changing RAG logic:** Architecture reference (chunking contract, retrieval flow, session store)
+- **Before adding UI components:** Architecture reference (directory map, Shadcn primitives list)
+- **Before adding routes:** Architecture reference (Zod validation pattern, session guard)
+- **Tech Stack details:** Tech Stack reference (full dependency versions, install commands)
