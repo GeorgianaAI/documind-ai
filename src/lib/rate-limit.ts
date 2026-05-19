@@ -3,7 +3,7 @@ import { Redis } from "@upstash/redis";
 
 export const chatRatelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, "1 d"),
+  limiter: Ratelimit.slidingWindow(2, "1 d"),
   prefix: "documind:chat",
 });
 
