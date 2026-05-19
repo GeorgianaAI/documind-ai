@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { ingestPdfForSession } from "@/lib/ai/rag-engine";
+
+const IngestMetaSchema = z.object({
+  sessionId: z.string().min(1),
+});
 
 export async function POST(request: Request) {
   const formData = await request.formData();
 
+  const parsed = IngestMetaSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+  });
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "A valid session ID is required." }, { status: 400 });
+  }
+
+  const { sessionId } = parsed.data;
   const file = formData.get("file");
-  const sessionId = (formData.get("sessionId") as string | null) ?? "default-session";
 
   if (!file || !(file instanceof Blob)) {
     return NextResponse.json({ error: "A PDF file is required." }, { status: 400 });

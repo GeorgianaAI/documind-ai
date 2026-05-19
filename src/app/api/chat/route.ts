@@ -4,27 +4,42 @@ export const maxDuration = 30; // Gives the AI time to think before Vercel kills
 import { NextResponse } from "next/server";
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
 
 import { retrieveRelevantChunks } from "@/lib/ai/rag-engine";
+import { chatRatelimit, getIp } from "@/lib/rate-limit";
+
+const ChatRequestSchema = z.object({
+  messages: z.array(z.object({ role: z.string(), content: z.string() })).default([]),
+  prompt: z.string().optional(),
+  sessionId: z.string().min(1),
+});
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
-      messages?: { role: string; content: string }[];
-      prompt?: string;
-      sessionId?: string;
-    };
+    const parsed = ChatRequestSchema.safeParse(await request.json());
 
-    const messages = body.messages ?? [];
-    const sessionId = body.sessionId ?? "default-session";
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
+    }
+
+    const { messages, prompt, sessionId } = parsed.data;
+
+    const { success } = await chatRatelimit.limit(getIp(request));
+    if (!success) {
+      return NextResponse.json(
+        { error: "Daily chat limit reached. You have 2 turns per day — please try again tomorrow." },
+        { status: 429 },
+      );
+    }
 
     let query: string | undefined;
 
     if (messages.length > 0) {
       const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
       query = lastUserMessage?.content?.trim();
-    } else if (typeof body.prompt === "string") {
-      query = body.prompt.trim();
+    } else if (typeof prompt === "string") {
+      query = prompt.trim();
     }
 
     if (!query) {
@@ -38,7 +53,7 @@ export async function POST(request: Request) {
         ? contextChunks.map((c) => c.text).join("\n\n---\n\n")
         : "No context available from the current session.";
 
-    const result = await streamText({
+    const result = streamText({
       model: openai("gpt-4o-mini"),
       messages: [
         {
@@ -73,7 +88,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "DocuMindAI encountered an issue generating a response. Please try again or reduce the document size.",
+          "DocuMind AI encountered an issue generating a response. Please try again or reduce the document size.",
       },
       { status: 500 },
     );
