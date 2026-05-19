@@ -45,7 +45,6 @@ As an engineer with nearly 5 years of experience in security environments (Trend
 
 ---
 
-
 > [!TIP]
 >
 > **🧭 Architecture Flows:** For end-to-end flow views across PDF ingestion, RAG retrieval, session isolation, and source citations, see [`ARCHITECTURE_FLOWS.md`](./docs/ARCHITECTURE_FLOWS.md).
@@ -67,6 +66,20 @@ As an engineer with nearly 5 years of experience in security environments (Trend
 
 ---
 
+## 🖼️ DocuMind AI Product Snapshot
+
+### Landing Page
+
+> ![DocuMind AI Landing Page](./docs/assets/documind-ai-landing-page.png)
+
+### Workspace
+
+> ![DocuMind AI Workspace](./docs/assets/documind-ai-workspace.png)
+
+_The RAG engine successfully identifies the "Neon Pink" moon color and that the Apple's CEO is a Golden Retriever named Sparky, bypassing general LLM training._
+
+---
+
 ## 🧪 Verification: The "Neon Pink Moon" Test
 
 To ensure the RAG engine is 100% grounded and ignoring its own pre-trained biases, I utilize a custom verification suite:
@@ -74,10 +87,6 @@ To ensure the RAG engine is 100% grounded and ignoring its own pre-trained biase
 1.  **Ingestion:** A PDF containing "nonsense" facts (e.g., _"The moon is Neon Pink"_ or _"Apple's CEO is a Golden Retriever named Sparky"_) is uploaded.
 2.  **Retrieval:** The system is queried: _"What color is the moon?"_
 3.  **Validation:** The app is verified only if it retrieves the "Neon Pink" chunk and ignores its general training data, proving the **Semantic Search** and **Prompt Grounding** are functional.
-
-![Neon Pink Moon](./docs/assets/neon-pink-moon.png)
-
-_The RAG engine successfully identifies the "Neon Pink" moon color, bypassing general LLM training._
 
 ---
 
@@ -128,6 +137,11 @@ npm run test:watch    # Watch mode (re-runs on file change)
 npm run test:coverage # Generate coverage report → coverage/
 ```
 
-The test suite covers the `cn()` utility and is structured to grow alongside the RAG engine. Any change to chunking logic, embedding calls, or cosine retrieval must include a corresponding test update.
+The test suite covers:
+
+- **`cn()` utility** (`src/lib/utils.test.ts`) — class merging, Tailwind conflict resolution, conditional classes
+- **`chunkText`** (`src/lib/ai/rag-engine.test.ts`) — empty input, short/exact-size text, overlapping stride, whitespace normalisation
+
+Any change to chunking logic, embedding calls, or cosine retrieval must include a corresponding test update.
 
 ---
