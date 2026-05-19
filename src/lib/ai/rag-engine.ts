@@ -1,6 +1,7 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Index } from "@upstash/vector";
 import PDFParser from "pdf2json";
+import { chunkText } from "@/lib/ai/chunker";
 
 export type RetrievedChunk = {
   id: number;
@@ -20,22 +21,6 @@ const index = new Index<ChunkMetadata>({
   token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
 });
 
-function chunkText(text: string, chunkSize = 1000, chunkOverlap = 200): string[] {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  const chunks: string[] = [];
-
-  if (!normalized) return chunks;
-
-  let start = 0;
-  while (start < normalized.length) {
-    const end = start + chunkSize;
-    chunks.push(normalized.slice(start, end));
-    if (end >= normalized.length) break;
-    start = end - chunkOverlap;
-  }
-
-  return chunks;
-}
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
