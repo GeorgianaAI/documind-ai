@@ -16,10 +16,17 @@ const embeddings = new OpenAIEmbeddings({
   model: "text-embedding-3-small",
 });
 
-const index = new Index<ChunkMetadata>({
-  url: process.env.UPSTASH_VECTOR_REST_URL!,
-  token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
-});
+let _index: Index<ChunkMetadata> | null = null;
+
+function getIndex(): Index<ChunkMetadata> {
+  if (!_index) {
+    _index = new Index<ChunkMetadata>({
+      url: process.env.UPSTASH_VECTOR_REST_URL!,
+      token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
+    });
+  }
+  return _index;
+}
 
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
@@ -49,7 +56,7 @@ export async function ingestPdfForSession(buffer: Buffer, sessionId: string) {
     const chunks = chunkText(text, 1000, 200);
     const vectors = await embeddings.embedDocuments(chunks);
 
-    await index.namespace(sessionId).upsert(
+    await getIndex().namespace(sessionId).upsert(
       chunks.map((chunk, i) => ({
         id: `${sessionId}-${i}`,
         vector: vectors[i],
@@ -71,7 +78,7 @@ export async function retrieveRelevantChunks(
 ): Promise<RetrievedChunk[]> {
   const queryVector = await embeddings.embedQuery(query);
 
-  const results = await index.namespace(sessionId).query({
+  const results = await getIndex().namespace(sessionId).query<ChunkMetadata>({
     vector: queryVector,
     topK: k,
     includeMetadata: true,
