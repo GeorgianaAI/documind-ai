@@ -1,32 +1,24 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
+import { Index } from "@upstash/vector";
 import PDFParser from "pdf2json";
-
-type SessionId = string;
 
 export type RetrievedChunk = {
   id: number;
   text: string;
 };
 
-type SessionStore = {
-  chunks: string[];
-  vectors: number[][];
-  rawText: string;
+type ChunkMetadata = {
+  text: string;
 };
 
 const embeddings = new OpenAIEmbeddings({
   model: "text-embedding-3-small",
 });
 
-// Ensure sessionStores persists across hot reloads in dev
-const globalForRag = globalThis as unknown as {
-  __DOCUMIND_SESSION_STORES__?: Map<SessionId, SessionStore>;
-};
-export const sessionStores: Map<SessionId, SessionStore> =
-  globalForRag.__DOCUMIND_SESSION_STORES__ || new Map<SessionId, SessionStore>();
-if (!globalForRag.__DOCUMIND_SESSION_STORES__) {
-  globalForRag.__DOCUMIND_SESSION_STORES__ = sessionStores;
-}
+const index = new Index<ChunkMetadata>({
+  url: process.env.UPSTASH_VECTOR_REST_URL!,
+  token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
+});
 
 function chunkText(text: string, chunkSize = 1000, chunkOverlap = 200): string[] {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -37,9 +29,7 @@ function chunkText(text: string, chunkSize = 1000, chunkOverlap = 200): string[]
   let start = 0;
   while (start < normalized.length) {
     const end = start + chunkSize;
-    const slice = normalized.slice(start, end);
-    chunks.push(slice);
-
+    chunks.push(normalized.slice(start, end));
     if (end >= normalized.length) break;
     start = end - chunkOverlap;
   }
@@ -47,34 +37,16 @@ function chunkText(text: string, chunkSize = 1000, chunkOverlap = 200): string[]
   return chunks;
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  const len = Math.min(a.length, b.length);
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  if (!normA || !normB) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser(null, true); // Use text-only mode
+    const pdfParser = new PDFParser(null, true);
 
     pdfParser.on("pdfParser_dataError", (errData: unknown) => {
       const error = errData as { parserError?: unknown } | Error;
       reject((error as { parserError?: unknown })?.parserError || error);
     });
     pdfParser.on("pdfParser_dataReady", () => {
-      // Use the built-in raw text extractor - it's much more reliable than walking the JSON tree
-      const rawText = pdfParser.getRawTextContent();
-      resolve(decodeURIComponent(rawText));
+      resolve(decodeURIComponent(pdfParser.getRawTextContent()));
     });
 
     pdfParser.parseBuffer(buffer);
@@ -92,11 +64,13 @@ export async function ingestPdfForSession(buffer: Buffer, sessionId: string) {
     const chunks = chunkText(text, 1000, 200);
     const vectors = await embeddings.embedDocuments(chunks);
 
-    sessionStores.set(sessionId, {
-      chunks,
-      vectors,
-      rawText: text,
-    });
+    await index.namespace(sessionId).upsert(
+      chunks.map((chunk, i) => ({
+        id: `${sessionId}-${i}`,
+        vector: vectors[i],
+        metadata: { text: chunk },
+      })),
+    );
 
     return { success: true };
   } catch (error) {
@@ -106,31 +80,22 @@ export async function ingestPdfForSession(buffer: Buffer, sessionId: string) {
 }
 
 export async function retrieveRelevantChunks(
-  sessionId: SessionId,
+  sessionId: string,
   query: string,
   k = 3,
 ): Promise<RetrievedChunk[]> {
-  const store = sessionStores.get(sessionId);
-  if (!store) {
-    return [];
-  }
-
   const queryVector = await embeddings.embedQuery(query);
 
-  const scored = store.chunks.map((chunk, index) => ({
-    chunk,
-    score: cosineSimilarity(queryVector, store.vectors[index]),
-  }));
+  const results = await index.namespace(sessionId).query({
+    vector: queryVector,
+    topK: k,
+    includeMetadata: true,
+  });
 
-  scored.sort((a, b) => b.score - a.score);
-
-  const top = scored
-    .slice(0, k)
-    .filter((item) => item.score > 0)
-    .map((item, index) => ({
-      id: index,
-      text: item.chunk,
+  return results
+    .filter((r) => r.score > 0)
+    .map((r, i) => ({
+      id: i,
+      text: r.metadata!.text,
     }));
-
-  return top;
 }
