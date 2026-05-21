@@ -10,7 +10,7 @@
 
 ### 🧭 **Engineering Philosophy**
 
-As an engineer with nearly 5 years of experience in security environments (Trend Micro), I believe AI should be a "glass box," not a "black box." DocuMind AI demonstrates my ability to build **verifiable**, **cost-efficient**, and **secure** AI systems.
+In my 4.5 years at Trend Micro, I learned to build robust, reliable platforms. DocuMind AI is my transition into AI-native development, demonstrating my ability to architect a **verifiable RAG system** from the ground up: every response is **grounded in specific PDF evidence** (never hallucinated), **session isolation** is enforced at the vector store level, and cost is baked into the architecture through smart chunking and minimal token overhead. This project proves I can bridge the rigor of platform engineering with **AI system reliability**.
 
 ---
 
