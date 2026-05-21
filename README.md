@@ -23,16 +23,6 @@ In my 4.5 years at Trend Micro, I learned to build robust, reliable platforms. D
 
 ---
 
-## 🖼️ DocuMind AI - Product Snapshot
-
-**Landing Page**
-![DocuMind AI Landing Page](./docs/assets/documind-ai-landing-page.png)
-
-**Workspace**
-![DocuMind AI Workspace](./docs/assets/documind-ai-workspace.png)
-
----
-
 ## 🛠️ Tech Stack
 
 - **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS 4, Shadcn/UI (**Radix Nova theme**)
@@ -55,17 +45,6 @@ In my 4.5 years at Trend Micro, I learned to build robust, reliable platforms. D
 
 ---
 
-## ℹ️ Deployment Notes
-
-> [!NOTE]
-> DocuMind AI uses **Upstash Vector** for persistent vector storage — vectors survive across Vercel serverless function instances. The live demo is fully functional end-to-end.
->
-> **All five environment variables** (OpenAI + Upstash Vector + Upstash Redis) must be configured in Vercel project settings for the deployed version to work. See [Getting Started](#-getting-started) for the full list.
-
-> **Looking for a more advanced evolution of this project?** Visit [🛡️ Sentinel Docs](https://github.com/GeorgiDS9/sentinel-docs) — a production-grade RAG platform with multi-tenant architecture, hardened monitoring, and enterprise controls.
-
----
-
 ## 🖼️ DocuMind AI Product Snapshot
 
 ### Landing Page
@@ -76,7 +55,7 @@ In my 4.5 years at Trend Micro, I learned to build robust, reliable platforms. D
 
 > ![DocuMind AI Workspace](./docs/assets/documind-ai-workspace.png)
 
-_The RAG engine successfully identifies the "Neon Pink" moon color and that the Apple's CEO is a Golden Retriever named Sparky, bypassing general LLM training._
+_Note: The RAG engine successfully identifies the "Neon Pink" moon color and that the Apple's CEO is a Golden Retriever named Sparky, bypassing general LLM training._
 
 ---
 
@@ -143,5 +122,11 @@ The test suite covers:
 - **`chunkText`** (`src/lib/ai/rag-engine.test.ts`) — empty input, short/exact-size text, overlapping stride, whitespace normalisation
 
 Any change to chunking logic, embedding calls, or cosine retrieval must include a corresponding test update.
+
+---
+
+## 🛡️ What's Next
+
+For a security-hardened evolution of this app — with automated PII redaction, adversarial guardrails, red-team validation, and NIST-aligned compliance — see **[🛡️ Sentinel Docs](https://github.com/GeorgiDS9/sentinel-docs)**.
 
 ---
