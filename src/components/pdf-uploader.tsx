@@ -4,6 +4,7 @@ import { CloudUpload, FileText, Sparkles } from "lucide-react";
 
 import { useSessionId } from "@/hooks/use-session-id";
 import { Card } from "@/components/ui/card";
+import { Pill } from "@/components/ui/pill";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useState } from "react";
@@ -78,22 +79,26 @@ export function PDFUploader() {
 
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/70 px-2.5 py-1 text-xs font-medium text-slate-200 ring-1 ring-white/10">
+            <Pill variant="neutral" size="sm">
               <CloudUpload className="size-3 text-sky-300" />
-              <span>PDF ingestion pipeline</span>
-            </div>
+              PDF ingestion pipeline
+            </Pill>
             <p className="text-sm text-slate-100">
               Upload compliance decks, research PDFs, or contracts. We&apos;ll slice them into
               semantic chunks and prep them for RAG.
             </p>
-            <p className="text-[12px] text-slate-400">
+            <p className="text-sm text-slate-400">
               Each upload is split into 1000-character slices, embedded, and stored for this session
               only.
             </p>
+            <Pill variant="neutral" size="sm">
+              <Sparkles className="size-3 text-violet-300" />
+              RAG-ready ingestion pipeline
+            </Pill>
           </div>
 
           <div className="flex flex-col items-start gap-2 md:items-end">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-sky-500/90 px-3 py-2 text-[11px] font-medium text-slate-950 shadow-lg shadow-sky-500/40 ring-1 ring-sky-400/60 hover:bg-sky-400">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-sky-500/90 px-3 py-2 text-sm font-medium whitespace-nowrap text-slate-950 shadow-lg shadow-sky-500/40 ring-1 ring-sky-400/60 hover:bg-sky-400">
               <FileText className="size-3.5" />
               <span>{isProcessing ? "Processing…" : "Upload PDF"}</span>
               <input
@@ -104,10 +109,6 @@ export function PDFUploader() {
                 disabled={isProcessing}
               />
             </label>
-            <div className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-slate-900/80 px-3.5 py-1.5 text-xs text-slate-300 ring-1 ring-white/10">
-              <Sparkles className="size-3 text-violet-300" />
-              <span>RAG-ready ingestion pipeline</span>
-            </div>
           </div>
         </div>
       </Card>
@@ -115,18 +116,14 @@ export function PDFUploader() {
       <Card className="border-white/10 bg-slate-950/40 p-3 backdrop-blur-2xl">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-[13px] font-medium text-slate-100">Recent workspaces</p>
-            <p className="text-[12px] text-slate-400">
+            <p className="text-sm font-medium text-slate-100">Recent workspaces</p>
+            <p className="text-sm text-slate-400">
               Once ingestion is live, your latest PDF collections will appear here.
             </p>
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-slate-900/80 px-3.5 py-1 text-[12px] text-slate-300 ring-1 ring-white/10">
-              Session-based
-            </span>
-            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-slate-900/80 px-4.5 py-1 text-[12px] text-slate-300 ring-1 ring-white/10">
-              In-memory vector store
-            </span>
+            <Pill variant="neutral" size="sm">Session-based</Pill>
+            <Pill variant="neutral" size="sm">In-memory vector store</Pill>
           </div>
         </div>
       </Card>
