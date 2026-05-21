@@ -26,10 +26,10 @@ In my 4.5 years at Trend Micro, I learned to build robust, reliable platforms. D
 ## 🖼️ DocuMind AI - Product Snapshot
 
 **Landing Page**
-![DocuMind AI Landing Page](./docs/assets/documind-landing-page.png)
+![DocuMind AI Landing Page](./docs/assets/documind-ai-landing-page.png)
 
 **Workspace**
-![DocuMind AI Workspace](./docs/assets/documind-workspace.png)
+![DocuMind AI Workspace](./docs/assets/documind-ai-workspace.png)
 
 ---
 
