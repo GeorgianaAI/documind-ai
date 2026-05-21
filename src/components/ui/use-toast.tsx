@@ -27,9 +27,16 @@ function generateId() {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
-  const addToast = React.useCallback((toast: Omit<Toast, "id">) => {
-    setToasts((current) => [...current, { id: generateId(), ...toast }]);
-  }, []);
+  const addToast = React.useCallback(
+    (toast: Omit<Toast, "id">) => {
+      const id = generateId();
+      setToasts((current) => [...current, { id, ...toast }]);
+      setTimeout(() => {
+        setToasts((current) => current.filter((t) => t.id !== id));
+      }, 4000);
+    },
+    [],
+  );
 
   const removeToast = React.useCallback((id: string) => {
     setToasts((current) => current.filter((toast) => toast.id !== id));
@@ -82,15 +89,15 @@ export function Toaster() {
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 {toast.title && (
-                  <p className="text-xs font-semibold tracking-tight">{toast.title}</p>
+                  <p className="text-sm font-semibold tracking-tight">{toast.title}</p>
                 )}
                 {toast.description && (
-                  <p className="text-[11px] text-slate-300">{toast.description}</p>
+                  <p className="text-sm text-slate-300">{toast.description}</p>
                 )}
               </div>
               <button
                 type="button"
-                className="text-[11px] text-slate-400 hover:text-slate-200"
+                className="text-sm text-slate-400 hover:text-slate-200"
                 onClick={() => removeToast(toast.id)}
               >
                 Dismiss
